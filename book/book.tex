@@ -3298,6 +3298,103 @@ The example code for this chapter is in the repository for this book,
 in a directory named {\tt counter}.  For information on downloading
 this code, see Section~\ref{code}.
 
+\section{Threads and CPU}
+
+Understanding how the CPU works with threads will give a clearer picture
+about what threads are and how they work. This section will focus on how
+threads relate to CPU execution and how they affect the way that your
+system performs.
+
+You may have heard, “thread” and “thread of execution” being used in
+different scenarios. But in reality “thread” is just used to simplify
+the idea of “thread of execution”. So, they may be used interchangeably.
+When you run a command, the CPU begins the fetch, decode, and execution
+process to accomplish the command. The thread is the sequence of
+instructions that describe what the computer must do in order to achieve
+that command!
+
+Let’s take a closer look at the comparison between threads and the cores
+in your CPU. Each of the cores in your CPU can be pictured as {\bf
+workers} who do whatever task their boss, the Operating System, assigns
+them to do. On the other hand, threads are the sequences of instructions
+given to the cores, so we can depict threads as {\bf conveyor belts} of
+products being sent to the workers. To understand the general purpose o
+f threads and cores, it’s helpful to know the difference between a
+physical core and a logical core. A physical core is simply the actual
+core (hardware) that exist on the computer, meanwhile logical cores can
+be depicted as the threads of the computer. For instance, if your CPU
+processor has 4 cores and 4 threads (1 Thread/Core), you will have 4
+logical cores, and 4 physical cores. Assuming you had a processor with 4
+cores and 8 threads (2 Threads/core), you will then have 8 logical cores
+and 4 physical cores. So logical cores are effectively the number of
+pathways for logic/information to be processed through your computer.
+
+Now what happens when your CPU has more threads than cores, like in the
+case of 8 threads running on your 4 core CPU? Well your cores will each
+be given 2 threads of commands to execute. With the worker/conveyor-belt
+analogy, the workers are given 2 lines of conveyor belt products.
+Usually, during normal CPU operations, you won’t see continuous
+operations on a single thread. There are often small gaps between the
+instructions on a thread that causes downtime, because the computer
+could be waiting on resources like disk IO, network IO or user input.
+This is where the advantage of having that second thread arises. You
+might have only one core but having this second thread generates more
+efficiency as the core can switch to actively performing instructions
+available on the 2nd thread while waiting for the computer to catch up
+on the 1st thread’s resources needs. This is analogous to the worker
+rotating between the 2 conveyor belts when one of them runs out of products
+in order to generate an efficient throughput.
+
+This scenario provides us a clear juxtaposition of Parallel Operation vs
+Concurrent Operations. The core to core operation is an example of
+Parallelism since all 4 cores on your computer work simultaneously and
+at the same time. On the other hand, the cores themselves can’t
+work/execute on multiple threads at the same time, so they must switch
+between single threads at a time. This independent execution of threads
+by switching between them is called Concurrency - although the switching
+between the threads happens quickly enough that the threads might appear
+to run simultaneously.
+We notice that, multiple threads per core can help in getting full
+efficiency out of each core by filling in the gaps of downtime, thereby
+enhancing performance. 
+However, “more threads” isn't always necessarily faster. it's difficult
+to assert that without knowing more about the nature of your threads.
+Things to take into consideration when diagnosing system performance
+include:
+
+Is the thread/process
+\begin{itemize}
+
+    \item CPU bound (needs lots of CPU resources)
+    \item Memory bound (needs lots of RAM resources)
+    \item I/O bound (requires Network and/or hard drive resources)
+    
+\end{itemize}
+
+Each of these three resources are finite, and each of them could limit
+the performance of a system. You need to look at which your thread is
+consuming. The more threads you have which fall in category 3 or 2, the
+more you take time to switch from one thread to another which is pure
+overhead because your system does NO work while switching. CPU-bound
+code, on the other hand, is inherently bound by the rate at which the
+CPU can execute instructions. So, when your code runs in parallel across
+4 threads on your various cores, you’re utilizing all the power of your
+4-core CPU without any overhead! 
+
+Another risk of multi-threading is that you need to be extra careful
+about the amount of data shared between your threads and hence, the
+amount of locking your code needs to do. If your threads are locked too
+often, your code may run as slow as a single-threaded code or even enter
+an infinite loop as a result of an induced race-condition such as a
+deadlock.  A lock (or mutex) is a synchronization mechanism for
+enforcing limits on access to a specific region of your code. Assume you
+have two threads, and they are both trying to get locks/mutexes P and Q.
+If the first thread already has P, and the second thread already has Q,
+then the threads will be deadlocked. This is because the first thread
+can’t get mutex Q and the second thread can’t get mutex P. As a result,
+your 2 threads come to a standstill. Locks and Deadlock (prevention) are
+further discussed in depth by the end of this chapter.
+
 
 \section{Creating threads}
 
