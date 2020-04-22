@@ -4861,6 +4861,355 @@ With the {\tt do...while} loop, it is guaranteed\footnote{Well,
 will get the signal, even if the signalling thread runs around and
 gets the mutex before one of the waiting threads resumes.
 
+
+\chapter{Top 7 Programming Concepts/Practices Needed for OS}
+
+Meanwhile this course is designed to expose you to the theory and design of
+operating systems, a significant part of the course also deals with
+implementing (simplified) parts of the operating system. The implied
+assumption is that most of the students taking this course are well versed
+with programming in a “lower” level language like C++. However, a lot of
+students come into this course without full confidence in C, which is the
+most popular language that comes up in systems programming! So, I think it
+would be a big benefit to students to refresh or learn about a few
+non-trivial programming concepts and practices in C language before diving
+into this course. This chapter will go over the top 7 programming concepts
+in C that will come in very handy for this class. 
+
+\section{Memory of C Programs}
+
+Although C is considered as a "high-level"  language, it comes at the
+"low-level"  end of the language spectrum because of the following main 
+
+\begin{itemize}
+	\item C uses pointers which allow direct access and manipulation of
+	memory contents.
+
+	\item C provides a good set of bit manipulation operators, allowing
+	bitwise operations
+
+	\item C has the possibility to dip in and out of assembly language
+	depending on hardware architecture and compiler support for inline
+	assembly language.
+
+	\item  You may write non-portable C code that makes assumptions about
+	the compiler and the underlying hardware architecture which may take
+	advantage of hardware specific behaviours. 
+
+\end{itemize}
+
+Because of this reason, it’s important to understand how the memory of C
+programs are layout and maintained to avoid committing potentially harmful
+actions on your computer. 
+
+When you execute your program, the kernel (program the core of a computer’s
+operating system) creates a new process and will initialize the following
+segments into the program’s memory: (Note the specific layout/order on a
+standard x86 computer) 
+
+\begin{itemize}
+    \item Stack
+    \item  ↑↓ (growth direction in free memory)
+	\item Heap
+	\item Data  
+	\item Text  
+\end{itemize}{}
+
+\textbf{The text} (or constant) segment contains the program instructions (code) copied from the program executable. This segment is “read-only” memory. It may only be read by any process or subroutines. 
+
+\textbf{The data} (or global) segment contains the global variables in your program. This region of memory is “read-write” - It is accessible by every part of the program. ex. Every functions and threads of execution can access this section of memory. Local variables are stored in a different memory segment from global variables because many local variables might get many instances/copies of them themselves if you write a function that calls itself. Moreover, their scopes and visibility are different (Read more under “Variable…”).
+
+\textbf{The heap} (and sometimes the stack) is the memory segment for dynamic memory allocation. This includes pointer variables and pointer functions, which are allocated at run time. (See next section on pointers)  
+The stack (short for call stack) is the memory segment where most functions calls along with their automatic variables are stored. Automatic variables are local variables which are allocated and deallocated when the program enters and leaves the variable’s scope (see section below under “Variables…”). 
+
+\textbf{The stack} contains a “stack pointer” which tracks the top of the stack. Each time a function is called, it gets pushed on top the stack in a structure called “stack frame” with a return address and other information. The newly called function then allocates space on the stack memory for its automatic variables. Every time a recursive function calls itself, a new stack frame is used so that one’s set of variables doesn’t interfere with those of another instance of the function. This is how recursion is able to work.
+
+As resources get allocated on the heap and the stack, they grow towards each other (stacks grow upward, and heap grows downward). If either of the heap or stack grows beyond the point of touching the other, the memory assigned to the program by the computer gets full and the program crashes as a result of a segmentation fault (an attempt to access a restricted area of memory). 
+Such growth of the heap memory could be triggered by continuous allocation of memory without freeing that memory space after using it or simply by dynamically allocating large number of variables. This is called \textbf{Heap Overflow}. E.g
+
+\begin{verbatim}
+
+int main(){
+    for (int i=0; i<10000000; i++) { 
+    //Allocating memory without ever freeing it
+        int *ptr = (int *)malloc(sizeof(int)); 
+    }
+}
+
+int main(){
+	for (int i=0; i<10000000; i++) { 
+	//Dynamically allocating large number variables
+        int *ptr = (int *)malloc(sizeof(int) * 10000000); 
+    }
+}
+
+\end{verbatim}
+
+Meanwhile an excessive growth of the stack could be as a result of infinite recursive calls or by declaring large number of local variables (ex: int grid[100000][100000] ). This is known as \textbf{Stack Overflow}.  
+
+\section{Segmentation Faults}
+Segmentation Faults (aka segfault) or access violation are one of the most common error conditions that will crash your programs, so mastering all their potential sources is a great asset to acquire. In addition to the stack overflow and heap overflow examples described above, here is a list of common mistakes that lead to segmentation faults:
+\begin{itemize}
+	\item Writing to read-only memory
+	\item Accessing an array out of bounds
+	\item Dereferencing NULL pointers
+	\item Dereferencing freed memory
+	\item Dereferencing uninitialized pointers
+	\item Incorrect use of the "\&" (address of) and "*" (dereferencing)
+	operators
+	\item Improper formatting specifiers in printf and scanf statements
+\end{itemize}
+
+\section{Pointers and Dynamic Memory}
+
+If you really want to kick butts with C, you need to understand how it handles the memory of its programs. Pointers are the hotline between your program and its memory! After understanding how C program memory works, it’s a perfect timing to master how you can address it from your code. After all, pointers are key to becoming a kick-ass C programmer. 
+
+A \textbf{pointer} is basically the \textbf{address} of a piece of data in memory. Pointers are used for the following main reasons:
+
+    \begin{itemize}
+        \item Passing around address of data (variables or functions) to functions instead of passing around a whole new copy for the intended data – By default, C passes its arguments by value. Pointers are used to pass by reference,  
+    	\item When you want more than one piece of code to work on the same piece of data instead of a separate copy of the data. 
+    \end{itemize}{}
+    
+When you declare a variable like:
+
+\begin{verbatim}
+int y = 2; 
+int main()
+{
+    int x = 10;
+    return 0;
+}
+
+\end{verbatim}
+
+The computer allocates a memory location for variable x, say 0x16B, on the stack memory and memory location 0x6E5 in the global memory. \textbf{To retrieve these addresses, C uses the \& operator}:
+
+\begin{verbatim}
+    printf("x is stored at %p\n", &x);	//passing the address/pointer of x
+                                        //to printf(use %p)
+\end{verbatim}
+
+Now that you have the address of something, how do you store it? 
+
+\begin{verbatim}
+    int *address_of_x = &x; 		// this is called referencing
+
+\end{verbatim}
+
+We declare a pointer by preceding the variable name with the * operator in the variable declaration. Next, \textbf{to read the data stored in this memory address/pointer, we use the * operator} again like this:
+
+\begin{verbatim}
+    int value_stored = *address_of_x;	// this is called dereferencing
+    
+\end{verbatim}{}
+	
+To change the contents of an address, dereference the pointer then assign the value :
+\begin{verbatim}
+*address_of_x = 44;     // you must dereference pointer before assigning its
+                        // value!
+\end{verbatim}{}
+	
+
+What is the size of a pointer?
+
+Pointers have a fixed size irrespective of what data type they are pointing to. On a 32-bit operating system, a pointer takes 4 bytes of memory while on a 64-bit operating system, a pointer takes 8 bytes of memory. 
+
+Why then do pointers have types?
+
+Although pointers are just addresses, they need to have types corresponding to the contents of the addresses that they point to. This is so that the compiler knows how to adjust the pointer arithmetic.
+Suppose you had an int pointer int. The size of an int is usually bytes, so if you added  1 to an int pointer, the compiled code will rather add 4 to the memory address so you can be pointing to the next integer in memory.
+Int numbers[] = {1, 2, 3};
+printf("numbers is at %p\n", numbers);
+printf("numbers + 1 is at %p\n", numbers + 1);
+The 2 memory addresses printed out from this code will be 4 bytes apart instead of 1.
+
+\section{Variables and the Static Keyword}
+
+Two important properties of variables in C are their persistence and visibility/scope.  Static and global variables are persistent since they hold their values for the duration of the execution of the program. In contrast, automatic/local variables become invalid when the program execution exits the scope where they are declared.
+
+Meanwhile \textbf{global} variables have the program scope meaning they can be seen anywhere in the entire program provided a declaration is visible, \textbf{Automatic} variables can only have function and block scope (area within if and loop statements).  
+
+\textbf{Static variables} can be used to control the scope of these variables within the .c file, a function, variable or even a block scope.
+Good programming practices usually suggest that variables be given the smallest scope to do the job. This prevents accidental access via things like misspelling the variable name. It also limits name clashes for commonly used variable names and makes the logic easier to follow. When you start to write large programs, you need to be mindful about using too many global variables as they can create buggy code.
+
+Consider the following code snippet:
+
+\begin{verbatim}
+int count = 0;
+int counter()
+{
+    return ++count;
+}    
+
+\end{verbatim}{}
+
+ It uses the global variable count since it is in the global scope. This is very bad as any function can change its value and you would run into issues keeping track of which function in a large program. Luckily, you have the static keyword to fix this problem thereby limiting the scope of this variable to the counter function. 
+ 
+\begin{verbatim}
+int counter()
+{
+    static int count = 0; 
+    return ++count;
+}       
+
+\end{verbatim}{} 
+
+The static keyword will store the variable inside the global area of memory, but the compiler throws an error if any different function from counter tries to access the variable. This also allows the count variable to be usable throughout the duration of the program execution since it is now a static variable.
+
+\begin{itemize}
+    \item Note: Static variables are initialized only once! 
+    \item So, the value of count in the above snippet isn’t reset to 0 during every function call to counter. 
+\end{itemize}{}
+
+Static functions and static variables declared outside of functions are used to imply that “only code in this .c file may access this”. Example: 
+
+\begin{verbatim}
+static int days = 365;
+static void update_score(int x) 
+{ 
+…
+}    
+
+\end{verbatim}{}
+
+
+\section{Structs}
+
+A struct is a C data type that allows you to combine other basic data types into them. Struct stands for \textbf{structured data type}. In comparison to an array variable which is simply a pointer to the array, a struct variable is literally the name for the struct itself. This is because struct items are not perfectly contiguous in memory as a result of padding.  
+
+Structs are defined as follows:
+
+\begin{verbatim}
+struct fish { 
+    const char *name; 
+    int teeth; 
+    const char 
+    *species; int age; 
+};
+
+\end{verbatim}{}
+
+A struct identifier(variable name) for this struct will have the data type struct fish var\_name. and will be declared as:
+
+\begin{verbatim}
+    struct fish bubbles = {“Bubbles”, 4, “Tilapia”, 1};
+    
+\end{verbatim}{}
+
+Notice that in the above example, the fields of the struct need to be declared in the same order as in the struct definition. To by pass this, C allows struct declaration using \textbf{designated initializers} which are used as follows:
+
+\begin{verbatim}
+Struct fish bubbles = { .age = 1, 
+                        .teeth = 4, 
+                        .name = “Bubbles”,  
+                        .specie = “Tilapia” };
+    
+\end{verbatim}{}
+
+C allows you to give your struct a proper name by aliasing it using the typedef keyword as follows:
+
+\begin{verbatim}
+typedef struct { 
+    const char *name;
+    int teeth; 
+    const char *species; 
+    int age;
+} fish;
+fish bubbles = {“Bubbles”, 4, “Tilapia”, a};
+
+You can set or update the value of a struct using the dot notation:
+
+    Bubbles.teeth = 5;
+    
+\end{verbatim}{}
+
+In C, function parameters are passed by value. So you need to make sure
+to pass your struct by reference if you want to make a change to any of
+the struct items. To do that you need to create a pointer to your struct,
+or pass it using the \& operator in the function call. 
+
+\begin{verbatim}
+
+void happy_birthday(fish *f)
+{
+   f->age++; // Use -> to access fields of a [struct] pointer instead of the dot.
+   printf("Happy Birthday %s! You are now %i years old!\n",f->name, f->age);
+}
+...
+happy_birthday(&myfish);
+\end{verbatim}{}
+
+\begin{itemize}
+    \item Note: pointer->field == (*pointer).field != *pointer.field
+\end{itemize}
+
+
+\section{Unions}
+
+Have you ever thought about having a variable that could hold any data type of your choice? If so, C has your back by providing you with unions. Unions are pretty much like structs in their definition – However, their memory layouts are completely different. Meanwhile the computer lay out struct fields one after the other in memory, a union only has space for its largest field in memory. The computer will always set the size of the union to the largest field to make sure that the union is always large enough to hold any field inside it.
+Assume you have the following union called quantity, with fields count, volume and total defined as:
+
+\begin{verbatim}
+typedef union {
+    short count;
+    float volume;
+    int total;
+} quantity;
+    
+\end{verbatim}
+
+Your ‘quantity’ variable will be able to support 3 different data types i.e short, float and int. You can only store 1 value in a union at a time! Whether you set the count, volume or total, the data will always go into the same memory space. In this case, the size of our union will be sizeof float, since float is the biggest datatype in this union. 
+Any of the following 2 styles can be used to declare union variables:
+
+\begin{verbatim}
+quantity q = { .volume=6.4};    // Designated Initializers
+
+quantity q; 
+q.count = 4;                    // Dot notation
+OR
+quantity q = {4};               // C89 style (limited) - Use only if 
+                                //you want to set the 1st field.
+
+\end{verbatim}
+
+
+\section{Enums}
+An enum is another user defined type in C just like structs and unions. An enum variable stores a list of symbols. These symbols assign names to integral constants which makes your program easier to read and maintain. They are defined as follows:
+
+\begin{verbatim}    enum colors = { BLUE, BLACK, RED }; \end{verbatim}
+
+Every enum colors variable can only be assigned a symbol from the colors list.
+
+\begin{verbatim}    enum colors favorite = BLUE; \end{verbatim}
+
+Underneath the hood, the computer assigns constant integers to the different symbols listed in the enum, counting from 0 at the first symbol, when the symbols are undefined by the user as in the above example.
+
+You may also set the integers to any of the symbols in your enum manually:
+
+\begin{verbatim}
+    enum week{MON, TUE, WED, THUR = 10, FRI, SAT=16, SUN};
+    
+\end{verbatim}
+
+In this case, the computer sets the numeric value of an undefined symbol by counting from the value of the previously defined symbol. Ex; FRI will be assigned 11 by the computer, while SUN will be assigned 17.
+Example:
+
+\begin{verbatim}
+
+#include<stdio.h>
+enum week{Mon=10, Tue, Wed, Thur, Fri=10, Sat=16, Sun};
+enum day{Mond, Tues, Wedn, Thurs, Frid, Satu, Sund};
+int main() {
+   printf("The value of enum week: %d\t%d\t%d\t%d\t%d\t%d\t%d\n\n",
+            Mon ,Tue, Wed, Thur, Fri, Sat, Sun);
+   printf("The default value of enum day:%d\t%d\t%d\t%d\t%d\t%d\t%d",
+            Mond , Tues, Wedn, Thurs, Frid, Satu, Sund);
+   return 0;
+}    
+
+\end{verbatim}
+
 \end{document}
 
 
