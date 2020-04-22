@@ -3396,6 +3396,68 @@ your 2 threads come to a standstill. Locks and Deadlock (prevention) are
 further discussed in depth by the end of this chapter.
 
 
+\section{Threads vs Processes}
+
+Processes can be used to do several things at the same time by; (a) creating
+new (child) processes with the fork() system call as seen under chapter 8,
+(b) connecting multiple client processes to a server over a network socket.
+Each time a client will connect, the server assigns the client a new task to
+perform.
+
+Although processes can be used to multitask on a computer, they are not
+always the best option. We require something that can start a separate task
+quickly enough, can share all our current data and won’t need a lot of code
+to build. Threads provide these features!
+
+\begin{itemize}
+
+    \item Threads are faster to create than processes. Some machines take a
+    little more time to bring processes to life. If you just had to perform
+    a simple task that required 0.01 second, creating a process every time
+    for this won’t be very efficient.
+    
+    \item Threads share data more easily than processes. When a new process
+    is created, it automatically gains a separate copy of the parent
+    process. There are no links between the parent and child processes. If
+    the new process needed to send data back to the parent process, then it
+    will require something like a pipe to connect them together. On the
+    other hand, newly created threads all have their own stack, and
+    registers but share the same heap and static memory with their parents.
+    Hence, they can share data more easily and rapidly through the heap.
+    
+    \item Context switch between threads of the same process is less
+    expensive than context switching between processes.
+    
+    \item Threads are faster to create than processes. Some machines take a
+    little more time to bring processes to life. If you just had to perform
+    a simple task that required 0.01 second, creating a process every time
+    for this won’t be very efficient.
+    
+\end{itemize}
+    
+These features, of course, don’t make threads better than processes in every
+situation.  Processes are typically independent of each other, while threads
+exist as the subset of a process. As a result, threads are more vulnerable
+to problems caused by other threads in the same process. This leads to one
+of the main advantage of processes over threads which is {\bf Fault
+Tolerance}: When processes crash, you can feel relatively safe knowing that
+you can just restart them (even across network host). In contrast, if a
+thread crashed, it may crash the entire process, which may bring your entire
+application down.
+    
+
+\section{Creating threads}
+
+The most popular threading standard used with C is POSIX Threads, or Pthreads for short.  The POSIX standard defines a thread model and an interface for creating and controlling threads.  Most versions of UNIX provide an implementation of Pthreads.
+
+Using Pthreads is like using most C libraries:
+
+\begin{itemize}
+
+\item You include headers files at the beginning of your
+
+
+
 \section{Creating threads}
 
 The most popular threading standard used with C is POSIX Threads, or Pthreads for short.  The POSIX standard defines a thread model and an interface for creating and controlling threads.  Most versions of UNIX provide an implementation of Pthreads.
