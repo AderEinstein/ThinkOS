@@ -3266,6 +3266,168 @@ designs than general purpose operating systems.
 
 %TODO: kernel mode?  signals?  user and system time
 
+\section{Understanding processes and fork()}
+
+You will often be confronted with problems related to determining the number
+of process resulting to a fork system call in different program. Here, we
+are going to go over a series of examples to master this common question.
+Before diving into this, let’s refresh ourselves about the definition of a
+process. 
+Processes are instances of programs on a computer. This simply means that,
+when a program is executed, the kernel creates a new process along with a
+PCB (Process Control Block) which keeps track of all the information
+allowing the execution of the process. A PCB comprises at a minimum of (a)
+Process ID, (b) Process Status, (c) Open File descriptors and (d) CPU
+registers.
+
+Remember the following key points when trying to solve the following problems:
+
+\begin{itemize}
+    \item Processes are created using the fork system call, which returns
+    the PID (process ID) of the child process.
+    
+    \item Child processes created using fork receive an entire copy of the
+    parent’s current memory image including the same current values to every
+    variable.
+    
+    \item Child processes created using fork receive an entire copy of the
+    parent’s current memory image including the same current values to every
+    variable.
+    
+    \item The new/child process will only start after the exact line where
+    it was created by fork.
+    
+    \item The only difference between a parent and a child process will be
+    their PID which effectively distinguishes their respective return values
+    from fork – The child is returned a 0, meanwhile the parent is returned
+    a positive integer which is identical to the child’s PID.
+    This is used in an if else statement to separate the code of the parent
+    from that of that of the child,
+    
+    
+    
+\end{itemize}
+
+The following example illustrates how fork (basically) works:
+
+\begin{verbatim}
+
+#include <unistd.h>
+#include <stdio.h>
+int main()
+{
+    if (fork() > 0) 
+        printf("I am the parent! ");
+    else
+        printf("I am the child! ");
+        printf("My pid is %d\n", (int)getpid());
+    return 0;
+}
+
+Output:
+I am the parent! My pid is 3621
+I am the child! My pid is 3622
+
+\end{verbatim}
+
+Now, let’s look at some complicated examples of fork with the following
+scenarios:
+
+\begin{enumerate}
+    \item How many hi’s are printed to the screen?
+ 
+\begin{verbatim}
+#include <stdio.h>
+#include <unistd.h>
+int main(void) {
+    for (int i = 0; i < 3; i++){
+        fork();
+    }												
+    printf(“hi\n”);
+    return 0;
+}
+\end{verbatim}
+
+Answer = 8
+ 
+ \includegraphics[width=5.99in,height=3.17in]{fork.jpg}
+ 
+This question is equivalent to asking you, how many processes including the
+parent result from this program. As shown by the diagram, the number of hi’s
+or processes resulting from this program is 8. An effective way of
+calculating the number of processes created by a fork() under a “for loop”
+running n times is by calculating the value $2^n$-1. This gives
+the total number of children processes minus the parent process. 
+
+
+\item Now test yourself by figuring out the output in the following program
+based off the previous explanation.
+
+\begin{verbatim}
+#include <stdio.h>
+#include <unistd.h>
+int main(void) {
+    int x = 10; 
+    for (int i = 0; i < 0=2; i++) {
+        if (fork() > 0) {
+            x++;
+        }
+    }
+    printf(“%d ”, x);
+    return 0;
+}
+
+Output:
+
+12 11 11 10
+
+\end{verbatim}
+
+
+    \item How many processes including the parent process are created in this next program.
+
+\begin{verbatim}
+#include <stdio.h>
+#include <unistd.h>
+int main(void) {
+    fork();
+    if (fork() > 0) {
+        fork();
+    }
+    return 0;
+}
+
+Answer = 6 processes. 
+
+\end{verbatim}
+
+    \item How many processes including the parent process are created in the
+    following program?
+
+\begin{verbatim}
+#include <stdio.h>
+#include <unistd.h>
+int main(void) {
+    if (fork() == fork())
+	    fork();
+}
+
+Answer: 5
+
+\end{verbatim}
+
+Notice that the operation fork()==fork() is false as a result of each fork
+producing different child processes, with different PIDs. Hence, the return
+values of the forks are different. So 2 children are created in the if
+condition, and those 2 children (instead of the parent) execute in the if
+statement, thereby forking again. We end up with 1 parent + 2 children  + 2
+grand children = 5 processes.  
+
+\end{enumerate}
+
+When presented with these types of problems, it will be helpful to trace
+every fork on a sheet of paper keeping track of every parent to child
+relationship to help you visualize it more easily and quicker. 
 
 \chapter{Threads}
 
